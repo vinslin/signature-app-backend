@@ -5,7 +5,7 @@ using signature_app_backend.Services;
 namespace signature_app_backend.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/pdf-field-values")]
     public class PdfFieldsController : ControllerBase
     {
         private readonly IPdfFieldService _pdfFieldService;

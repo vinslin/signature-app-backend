@@ -10,6 +10,7 @@ namespace signature_app_backend.Data
         public DbSet<PdfFieldValue> PdfFieldValues { get; set; }
         public DbSet<SignedDocument> SignedDocuments { get; set; }
         public DbSet<Customer> Customers { get; set; }
+        public DbSet<Contract> Contracts { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -40,6 +41,14 @@ namespace signature_app_backend.Data
                 entity.Property(e => e.Email).HasMaxLength(100);
                 entity.Property(e => e.Phone).HasMaxLength(20);
                 entity.Property(e => e.BusinessName).HasMaxLength(255);
+                entity.Property(e => e.CreatedDate).HasDefaultValueSql("GETDATE()");
+            });
+
+            modelBuilder.Entity<Contract>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ContractName).IsRequired().HasMaxLength(255);
+                entity.Property(e => e.PdfData).IsRequired().HasColumnType("varbinary(max)");
                 entity.Property(e => e.CreatedDate).HasDefaultValueSql("GETDATE()");
             });
         }

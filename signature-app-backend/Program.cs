@@ -17,6 +17,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Register application services
 builder.Services.AddScoped<IPdfFieldService, PdfFieldService>();
 builder.Services.AddScoped<ISignedDocumentService, SignedDocumentService>();
+builder.Services.AddScoped<IContractService, ContractService>();
 
 // Enable CORS for Angular frontend
 builder.Services.AddCors(options =>
