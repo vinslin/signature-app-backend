@@ -18,6 +18,56 @@ namespace signature_app_backend.Controllers
         }
 
         /// <summary>
+        /// Returns metadata for every submitted contract (no PDF binary data).
+        /// </summary>
+        [HttpGet]
+        [ProducesResponseType(typeof(IEnumerable<SignedDocumentDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<IEnumerable<SignedDocumentDto>>> GetSignedDocuments()
+        {
+            try
+            {
+                var documents = await _signedDocumentService.GetAllSignedDocumentsAsync();
+                return Ok(documents);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving submitted contracts");
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { message = "Error retrieving submitted contracts.", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Returns the submitted PDF as binary data. Used for both viewing
+        /// (opened in a new tab) and downloading on the frontend.
+        /// </summary>
+        [HttpGet("{id:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetSignedDocument(int id)
+        {
+            try
+            {
+                var signedDocument = await _signedDocumentService.GetSignedDocumentByIdAsync(id);
+
+                if (signedDocument == null || signedDocument.SignedPdfData == null)
+                {
+                    return NotFound(new { message = $"Signed document with Id {id} was not found." });
+                }
+
+                return File(signedDocument.SignedPdfData, "application/pdf", signedDocument.DocumentName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving signed document {SignedDocumentId}", id);
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { message = "Error retrieving the signed document.", error = ex.Message });
+            }
+        }
+
+        /// <summary>
         /// Accepts a signed PDF file and optional metadata, then saves it to the database.
         /// The multipart/form-data request includes:
         /// - file: The signed PDF as binary data
