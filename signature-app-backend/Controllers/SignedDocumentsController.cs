@@ -9,11 +9,16 @@ namespace signature_app_backend.Controllers
     public class SignedDocumentsController : ControllerBase
     {
         private readonly ISignedDocumentService _signedDocumentService;
+        private readonly IFileStorageService _fileStorageService;
         private readonly ILogger<SignedDocumentsController> _logger;
 
-        public SignedDocumentsController(ISignedDocumentService signedDocumentService, ILogger<SignedDocumentsController> logger)
+        public SignedDocumentsController(
+            ISignedDocumentService signedDocumentService,
+            IFileStorageService fileStorageService,
+            ILogger<SignedDocumentsController> logger)
         {
             _signedDocumentService = signedDocumentService;
+            _fileStorageService = fileStorageService;
             _logger = logger;
         }
 
@@ -52,12 +57,19 @@ namespace signature_app_backend.Controllers
             {
                 var signedDocument = await _signedDocumentService.GetSignedDocumentByIdAsync(id);
 
-                if (signedDocument == null || signedDocument.SignedPdfData == null)
+                if (signedDocument == null)
                 {
                     return NotFound(new { message = $"Signed document with Id {id} was not found." });
                 }
 
-                return File(signedDocument.SignedPdfData, "application/pdf", signedDocument.DocumentName);
+                var stream = await _fileStorageService.GetAsync(signedDocument.FilePath);
+
+                if (stream == null)
+                {
+                    return NotFound(new { message = $"Signed document file for Id {id} was not found on disk." });
+                }
+
+                return File(stream, "application/pdf", signedDocument.DocumentName);
             }
             catch (Exception ex)
             {
@@ -95,20 +107,11 @@ namespace signature_app_backend.Controllers
                     return BadRequest(new { message = "Only PDF files are accepted." });
                 }
 
-                // Read the file into a byte array
-                using var memoryStream = new MemoryStream();
-                await file.CopyToAsync(memoryStream);
-                var pdfData = memoryStream.ToArray();
+                await using var stream = file.OpenReadStream();
 
-                if (pdfData.Length == 0)
-                {
-                    return BadRequest(new { message = "PDF file cannot be empty." });
-                }
-
-                // Save to database
                 var result = await _signedDocumentService.SaveSignedDocumentAsync(
                     file.FileName,
-                    pdfData,
+                    stream,
                     request.SignedBy);
 
                 _logger.LogInformation($"Signed document saved: {result.DocumentName} by {result.SignedBy ?? "Unknown"}");

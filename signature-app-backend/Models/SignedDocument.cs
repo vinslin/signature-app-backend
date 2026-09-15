@@ -4,8 +4,7 @@ namespace signature_app_backend.Models
     {
         public int Id { get; set; }
         public required string DocumentName { get; set; }
-        public byte[]? SignedPdfData { get; set; }
-        public byte[]? SignatureImageData { get; set; }
+        public string FilePath { get; set; } = string.Empty;
         public string? SignedBy { get; set; }
         public DateTime SignedDate { get; set; } = DateTime.Now;
     }

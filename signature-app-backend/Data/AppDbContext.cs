@@ -28,8 +28,7 @@ namespace signature_app_backend.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.DocumentName).IsRequired().HasMaxLength(255);
-                entity.Property(e => e.SignedPdfData).HasColumnType("varbinary(max)");
-                entity.Property(e => e.SignatureImageData).HasColumnType("varbinary(max)");
+                entity.Property(e => e.FilePath).IsRequired().HasMaxLength(500);
                 entity.Property(e => e.SignedBy).HasMaxLength(100);
                 entity.Property(e => e.SignedDate).HasDefaultValueSql("GETDATE()");
             });
@@ -48,7 +47,7 @@ namespace signature_app_backend.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.ContractName).IsRequired().HasMaxLength(255);
-                entity.Property(e => e.PdfData).IsRequired().HasColumnType("varbinary(max)");
+                entity.Property(e => e.FilePath).IsRequired().HasMaxLength(500);
                 entity.Property(e => e.CreatedDate).HasDefaultValueSql("GETDATE()");
             });
         }

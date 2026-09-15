@@ -7,7 +7,7 @@ namespace signature_app_backend.Services
 {
     public interface ISignedDocumentService
     {
-        Task<SignedDocumentDto> SaveSignedDocumentAsync(string documentName, byte[] pdfData, string? signedBy, byte[]? signatureImageData = null);
+        Task<SignedDocumentDto> SaveSignedDocumentAsync(string documentName, Stream fileStream, string? signedBy);
 
         Task<IEnumerable<SignedDocumentDto>> GetAllSignedDocumentsAsync();
 
@@ -17,33 +17,30 @@ namespace signature_app_backend.Services
     public class SignedDocumentService : ISignedDocumentService
     {
         private readonly AppDbContext _context;
+        private readonly IFileStorageService _fileStorageService;
 
-        public SignedDocumentService(AppDbContext context)
+        public SignedDocumentService(AppDbContext context, IFileStorageService fileStorageService)
         {
             _context = context;
+            _fileStorageService = fileStorageService;
         }
 
         public async Task<SignedDocumentDto> SaveSignedDocumentAsync(
             string documentName,
-            byte[] pdfData,
-            string? signedBy,
-            byte[]? signatureImageData = null)
+            Stream fileStream,
+            string? signedBy)
         {
             if (string.IsNullOrWhiteSpace(documentName))
             {
                 throw new ArgumentException("Document name cannot be empty.", nameof(documentName));
             }
 
-            if (pdfData == null || pdfData.Length == 0)
-            {
-                throw new ArgumentException("PDF data cannot be empty.", nameof(pdfData));
-            }
+            var filePath = await _fileStorageService.SaveAsync(fileStream, documentName, "signeddocuments");
 
             var signedDocument = new SignedDocument
             {
                 DocumentName = documentName.Trim(),
-                SignedPdfData = pdfData,
-                SignatureImageData = signatureImageData,
+                FilePath = filePath,
                 SignedBy = signedBy?.Trim(),
                 SignedDate = DateTime.Now
             };
@@ -62,8 +59,7 @@ namespace signature_app_backend.Services
 
         /// <summary>
         /// Returns metadata only for every submitted contract. The projection
-        /// is applied in the query itself so SignedPdfData/SignatureImageData
-        /// (VARBINARY(MAX)) are never pulled from SQL Server for the list view.
+        /// is applied in the query itself so FilePath is never exposed to the list view.
         /// </summary>
         public async Task<IEnumerable<SignedDocumentDto>> GetAllSignedDocumentsAsync()
         {
@@ -80,8 +76,8 @@ namespace signature_app_backend.Services
         }
 
         /// <summary>
-        /// Returns the full entity, including the PDF binary, for a single
-        /// signed document — used by the view/download endpoint.
+        /// Returns the entity (including FilePath) for a single signed document —
+        /// used by the view/download endpoint to resolve the file via IFileStorageService.
         /// </summary>
         public async Task<SignedDocument?> GetSignedDocumentByIdAsync(int id)
         {
